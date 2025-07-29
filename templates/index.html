@@ -1,29 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Diabetes Predictor</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="background" style="background-image: url('{{ url_for('static', filename='bg.jpg') }}');"></div>
+
     <div class="container">
-        <h1>Diabetes Prediction Form</h1>
-        <form action="/predict" method="post">
-            <input type="number" name="Pregnancies" placeholder="Pregnancies" step="any" required>
-            <input type="number" name="Glucose" placeholder="Glucose" step="any" required>
-            <input type="number" name="BloodPressure" placeholder="Blood Pressure" step="any" required>
-            <input type="number" name="SkinThickness" placeholder="Skin Thickness" step="any" required>
-            <input type="number" name="Insulin" placeholder="Insulin" step="any" required>
-            <input type="number" name="BMI" placeholder="BMI" step="any" required>
-            <input type="number" name="DiabetesPedigreeFunction" placeholder="DPF" step="any" required>
-            <input type="number" name="Age" placeholder="Age" step="any" required>
-            <button type="submit">Predict</button>
-        </form>
-        {% if result %}
-        <div class="result">
-            <p><strong>Diagnosis:</strong> {{ result }}</p>
-            <p><strong>Probability:</strong> {{ prob }}</p>
+        <div class="card">
+            <img src="{{ url_for('static', filename='db.jpg') }}" alt="Diabetes Info" class="header-image">
+
+            <h1>Diabetes Prediction Form</h1>
+            <form action="/predict" method="post">
+                <input type="number" name="Pregnancies" placeholder="Pregnancies" step="any" required>
+                <input type="number" name="Glucose" placeholder="Glucose" step="any" required>
+                <input type="number" name="BloodPressure" placeholder="Blood Pressure" step="any" required>
+                <input type="number" name="SkinThickness" placeholder="Skin Thickness" step="any" required>
+                <input type="number" name="Insulin" placeholder="Insulin" step="any" required>
+                <input type="number" name="BMI" placeholder="BMI" step="any" required>
+                <input type="number" name="DiabetesPedigreeFunction" placeholder="Diabetes Pedigree Function" step="any" required>
+                <input type="number" name="Age" placeholder="Age" step="any" required>
+                <button type="submit">Predict</button>
+            </form>
+
+            {% if result %}
+            <div class="result-container">
+                <div class="text-result">
+                    <p><strong>Diagnosis:</strong> {{ result }}</p>
+                    <p><strong>Probability:</strong> {{ prob }}</p>
+                </div>
+                <div class="chart-result">
+                    <canvas id="probChart" width="300" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="comparison-chart">
+                <h2>Model Accuracy Comparison</h2>
+                <canvas id="accuracyChart" width="400" height="250"></canvas>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                const prob = {{ prob|default(0) }};
+                const rfTrain = {{ rf_train|default(0) }};
+                const rfTest = {{ rf_test|default(0) }};
+                const lrTrain = {{ lr_train|default(0) }};
+                const lrTest = {{ lr_test|default(0) }};
+
+                new Chart(document.getElementById('probChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Diabetic', 'Non-Diabetic'],
+                        datasets: [{
+                            label: 'Probability',
+                            data: [prob, 1 - prob],
+                            backgroundColor: ['#e74c3c', '#3498db']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return (context.raw * 100).toFixed(1) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 1,
+                                ticks: {
+                                    callback: function(value) {
+                                        return (value * 100) + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('accuracyChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Training Accuracy', 'Testing Accuracy'],
+                        datasets: [
+                            {
+                                label: 'Random Forest',
+                                data: [rfTrain, rfTest],
+                                backgroundColor: ['#2ecc71', '#27ae60']
+                            },
+                            {
+                                label: 'Logistic Regression',
+                                data: [lrTrain, lrTest],
+                                backgroundColor: ['#f39c12', '#e67e22']
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 1,
+                                ticks: {
+                                    callback: function(value) {
+                                        return (value * 100) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + (context.raw * 100).toFixed(1) + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 </body>
 </html>
